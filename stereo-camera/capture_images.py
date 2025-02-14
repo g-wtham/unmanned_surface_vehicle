@@ -22,13 +22,13 @@ cv2.imshow('imgL',frameL)
 cv2.imshow('imgR',frameR)
 
 if cv2.waitKey(0) & 0xFF == ord('y') or cv2.waitKey(0) & 0xFF == ord('Y'):
-    CamL_id = 1
-    CamR_id = 2
+    CamL_id = 0
+    CamR_id = 1
     print("Camera IDs maintained")
 
 elif cv2.waitKey(0) & 0xFF == ord('n') or cv2.waitKey(0) & 0xFF == ord('N'):
-    CamL_id = 2
-    CamR_id = 1
+    CamL_id = 1
+    CamR_id = 0
     print("Camera IDs swapped")
 else:
     print("Wrong input response")

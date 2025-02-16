@@ -2,99 +2,82 @@ import numpy as np
 import cv2
 import time
 import os
+import threading
 
-# Create output directories if they don't exist
 output_path = "./data/"
-stereoL_path = os.path.join(output_path, "stereoL")
-stereoR_path = os.path.join(output_path, "stereoR")
+stereoL_path = os.path.join(output_path, "stereoL")  # Left Camera Storage
+stereoR_path = os.path.join(output_path, "stereoR")  # Right Camera Storage
 os.makedirs(stereoL_path, exist_ok=True)
 os.makedirs(stereoR_path, exist_ok=True)
 
-print("Checking the right and left camera IDs:")
-print("Press (y) if IDs are correct and (n) to swap the IDs")
-print("Press enter to start the process >> ")
-input()
+# Camera IDs
+CamL_id = 1 
+CamR_id = 2  
 
-CamL_id = 0
-CamR_id = 1
-
-CamL = cv2.VideoCapture(CamL_id)
-CamR = cv2.VideoCapture(CamR_id)
+# Initialize Cameras
+CamL = cv2.VideoCapture(CamL_id, cv2.CAP_DSHOW)
+CamR = cv2.VideoCapture(CamR_id, cv2.CAP_DSHOW)
 
 if not CamL.isOpened() or not CamR.isOpened():
     print("Error: One or both cameras could not be opened!")
     exit(-1)
 
-for i in range(10):
-    retL, frameL = CamL.read()
-    retR, frameR = CamR.read()
+# Set resolution
+CamL.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+CamL.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+CamR.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+CamR.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-    if not retL or not retR:
-        print("Error: Could not read frames from cameras.")
-        exit(-1)
+time.sleep(2)  # Warm-up time for cameras
 
-cv2.imshow('imgL', frameL)
-cv2.imshow('imgR', frameR)
-
-key = cv2.waitKey(0) & 0xFF
-if key == ord('y') or key == ord('Y'):
-    print("Camera IDs maintained")
-elif key == ord('n') or key == ord('N'):
-    CamL_id, CamR_id = CamR_id, CamL_id
-    print("Camera IDs swapped")
-else:
-    print("Wrong input response")
-    exit(-1)
-
-CamR.release()
-CamL.release()
-
-CamL = cv2.VideoCapture(CamL_id)
-CamR = cv2.VideoCapture(CamR_id)
-
-if not CamL.isOpened() or not CamR.isOpened():
-    print("Error: One or both cameras could not be reopened after swapping.")
-    exit(-1)
-
-start = time.time()
+# Timer Settings
 T = 10  
-count = 0
+countL = 0  
+countR = 0  
+start = time.time()  
 
-while True:
-    timer = T - int(time.time() - start)
-    
-    retR, frameR = CamR.read()
-    retL, frameL = CamL.read()
+def capture_frames(cam, cam_name, save_path, display_name, is_left_camera):
+    global start, countL, countR
+    while True:
+        ret, frame = cam.read()
+        if not ret:
+            print(f"Error: Could not read frame from {cam_name}.")
+            break
 
-    if not retR or not retL:
-        print("Error: Unable to fetch frames from cameras.")
-        break
+        timer = T - int(time.time() - start)
 
-    img1_temp = frameL.copy()
-    cv2.putText(img1_temp, "%r" % timer, (50, 50), 1, 5, (55, 0, 0), 5)
-    cv2.imshow('imgR', frameR)
-    cv2.imshow('imgL', img1_temp)
+        display_frame = frame.copy()
+        cv2.putText(display_frame, f"Time: {timer}s", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 
+                    1, (0, 255, 0), 2, cv2.LINE_AA)
+        cv2.imshow(display_name, display_frame)
 
-    grayR = cv2.cvtColor(frameR, cv2.COLOR_BGR2GRAY)
-    grayL = cv2.cvtColor(frameL, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        ret_corners, corners = cv2.findChessboardCorners(gray, (9, 6), None)
 
-    # Find the chessboard corners
-    retCornersR, cornersR = cv2.findChessboardCorners(grayR, (9, 6), None)
-    retCornersL, cornersL = cv2.findChessboardCorners(grayL, (9, 6), None)
+        if ret_corners or timer <= 0:
+            if is_left_camera:
+                countL += 1
+                filename = f'img{countL}.png'
+            else:
+                countR += 1
+                filename = f'img{countR}.png'
 
-    # Save images if chessboard corners are detected or timer hits 0
-    if (retCornersR and retCornersL) or timer <= 0:
-        count += 1
-        cv2.imwrite(os.path.join(stereoR_path, f'img{count}.png'), frameR)
-        cv2.imwrite(os.path.join(stereoL_path, f'img{count}.png'), frameL)
-        print(f"Images saved: img{count}.png in stereoL and stereoR")
+            cv2.imwrite(os.path.join(save_path, filename), frame)  # Save without overlay
+            print(f"Image saved: {filename} in {save_path}")
+            start = time.time()  # Reset timer
 
-        start = time.time()  
+        if cv2.waitKey(1) & 0xFF == 27:
+            break
 
-    if cv2.waitKey(1) & 0xFF == 27:
-        print("Closing the cameras!")
-        break
+threadL = threading.Thread(target=capture_frames, args=(CamL, "Left Camera", stereoL_path, "Left Camera", True))
+threadR = threading.Thread(target=capture_frames, args=(CamR, "Right Camera", stereoR_path, "Right Camera", False))
 
-CamR.release()
+threadL.start()
+threadR.start()
+
+threadL.join()
+threadR.join()
+
 CamL.release()
+CamR.release()
 cv2.destroyAllWindows()

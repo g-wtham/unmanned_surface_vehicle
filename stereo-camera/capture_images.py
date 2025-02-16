@@ -5,16 +5,15 @@ import os
 import threading
 
 output_path = "./data/"
-stereoL_path = os.path.join(output_path, "stereoL")  # Left Camera Storage
-stereoR_path = os.path.join(output_path, "stereoR")  # Right Camera Storage
+stereoL_path = os.path.join(output_path, "stereoL")
+stereoR_path = os.path.join(output_path, "stereoR")
 os.makedirs(stereoL_path, exist_ok=True)
 os.makedirs(stereoR_path, exist_ok=True)
 
 # Camera IDs
-CamL_id = 1 
+CamL_id = 1  
 CamR_id = 2  
 
-# Initialize Cameras
 CamL = cv2.VideoCapture(CamL_id, cv2.CAP_DSHOW)
 CamR = cv2.VideoCapture(CamR_id, cv2.CAP_DSHOW)
 
@@ -28,16 +27,14 @@ CamL.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 CamR.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 CamR.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-time.sleep(2)  # Warm-up time for cameras
+time.sleep(2)  
 
-# Timer Settings
 T = 10  
-countL = 0  
-countR = 0  
+count = 0  # to sync two cameras while taking imgs
 start = time.time()  
 
 def capture_frames(cam, cam_name, save_path, display_name, is_left_camera):
-    global start, countL, countR
+    global start, count
     while True:
         ret, frame = cam.read()
         if not ret:
@@ -55,20 +52,18 @@ def capture_frames(cam, cam_name, save_path, display_name, is_left_camera):
         ret_corners, corners = cv2.findChessboardCorners(gray, (9, 6), None)
 
         if ret_corners or timer <= 0:
-            if is_left_camera:
-                countL += 1
-                filename = f'img{countL}.png'
-            else:
-                countR += 1
-                filename = f'img{countR}.png'
-
-            cv2.imwrite(os.path.join(save_path, filename), frame)  # Save without overlay
+            count += 1  
+            filename = f'img{count}.png'
+            cv2.imwrite(os.path.join(save_path, filename), frame)  
             print(f"Image saved: {filename} in {save_path}")
-            start = time.time()  # Reset timer
+
+            if timer <= 0:  
+                start = time.time()  # Reset timer only if it fully runs out
 
         if cv2.waitKey(1) & 0xFF == 27:
             break
 
+# Start threads
 threadL = threading.Thread(target=capture_frames, args=(CamL, "Left Camera", stereoL_path, "Left Camera", True))
 threadR = threading.Thread(target=capture_frames, args=(CamR, "Right Camera", stereoR_path, "Right Camera", False))
 

@@ -97,8 +97,9 @@ Right_Stereo_Map= cv2.initUndistortRectifyMap(new_mtxR, distR, rect_r, proj_mat_
 
 print("Saving parameters ......")
 cv_file = cv2.FileStorage("data/params_py.xml", cv2.FILE_STORAGE_WRITE)
-cv_file.write("Left_Stereo_Map_x",Left_Stereo_Map[0])
-cv_file.write("Left_Stereo_Map_y",Left_Stereo_Map[1])
-cv_file.write("Right_Stereo_Map_x",Right_Stereo_Map[0])
-cv_file.write("Right_Stereo_Map_y",Right_Stereo_Map[1])
+cv_file.write("Left_Stereo_Map_x", Left_Stereo_Map[0])
+cv_file.write("Left_Stereo_Map_y", Left_Stereo_Map[1])
+cv_file.write("Right_Stereo_Map_x", Right_Stereo_Map[0])
+cv_file.write("Right_Stereo_Map_y", Right_Stereo_Map[1])
+cv_file.write("Q", Q)  # Used for getting depth from disparity map
 cv_file.release()

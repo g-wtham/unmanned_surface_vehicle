@@ -11,8 +11,8 @@ os.makedirs(stereoL_path, exist_ok=True)
 os.makedirs(stereoR_path, exist_ok=True)
 
 # Camera IDs
-CamL_id = 0
-CamR_id = 1
+CamL_id = 1
+CamR_id = 0
 
 CamL = cv2.VideoCapture(CamL_id, cv2.CAP_DSHOW)
 CamR = cv2.VideoCapture(CamR_id, cv2.CAP_DSHOW)
